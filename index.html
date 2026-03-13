@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>흥얼 → 멜로디</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #080810;
+    --surface: #0f0f1a;
+    --card: #141424;
+    --border: rgba(255,255,255,0.06);
+    --accent: #8b5cf6;
+    --accent2: #22d3ee;
+    --accent3: #f59e0b;
+    --danger: #ef4444;
+    --text: #f1f5f9;
+    --muted: #475569;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    overscroll-behavior: none;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+  }
+
+  /* Top Bar */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px 10px;
+    padding-top: max(14px, env(safe-area-inset-top, 14px));
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .app-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .status-pill {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    transition: all 0.3s;
+    max-width: 160px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .status-pill.active { color: var(--accent2); border-color: rgba(34,211,238,0.3); background: rgba(34,211,238,0.06); }
+  .status-pill.rec { color: var(--danger); border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06); animation: blink-pill 1s infinite; }
+  @keyframes blink-pill { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  /* Scrollable main */
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 14px 0;
+  }
+
+  /* Note hero */
+  .note-hero {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 20px 20px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .note-hero::after {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .note-big {
+    font-family: 'Space Mono', monospace;
+    font-size: 64px;
+    font-weight: 700;
+    line-height: 1;
+    width: 110px;
+    text-align: center;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transition: all 0.08s;
+    letter-spacing: -3px;
+  }
+
+  .note-side { flex: 1; min-width: 0; }
+  .note-freq {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  #waveCanvas {
+    width: 100%;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--surface);
+    display: block;
+  }
+
+  /* Piano Roll */
+  .roll-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 14px;
+    flex-shrink: 0;
+  }
+  .roll-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .roll-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  #rollCanvas {
+    width: 100%;
+    height: 130px;
+    border-radius: 12px;
+    background: var(--surface);
+    display: block;
+  }
+
+  /* Saves */
+  .saves-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 16px;
+    flex: 1;
+    min-height: 100px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .saves-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+  }
+  .saves-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .save-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(245,158,11,0.35);
+    background: rgba(245,158,11,0.07);
+    color: var(--accent3);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  .save-btn:active { transform: scale(0.95); }
+  .save-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .saves-list { overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+  .empty-state { text-align: center; color: var(--muted); font-size: 13px; padding: 20px 0; opacity: 0.5; }
+
+  .melody-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 11px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.15s;
+  }
+  .melody-card:active { background: rgba(139,92,246,0.08); transform: scale(0.98); }
+
+  .melody-mini-wrap { flex: 1; min-width: 0; }
+  .melody-name { font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .melody-mini { width: 100%; height: 28px; border-radius: 5px; display: block; background: var(--card); }
+  .melody-meta { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+  .melody-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .icon-btn {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .icon-btn:active { transform: scale(0.88); }
+  .icon-btn.play:active { background: rgba(139,92,246,0.25); color: var(--accent); border-color: var(--accent); }
+  .icon-btn.del:active { background: rgba(239,68,68,0.2); color: var(--danger); border-color: var(--danger); }
+
+  /* Bottom bar */
+  .bottom-bar {
+    flex-shrink: 0;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .btn-record {
+    flex: 1;
+    height: 56px;
+    border-radius: 18px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent), #7c3aed);
+    color: #fff;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 24px rgba(139,92,246,0.35);
+    transition: all 0.15s;
+  }
+  .btn-record:active { transform: scale(0.97); }
+  .btn-record.recording {
+    background: linear-gradient(135deg, var(--danger), #dc2626);
+    box-shadow: 0 4px 24px rgba(239,68,68,0.4);
+    animation: pulse-glow 1.2s infinite;
+  }
+  @keyframes pulse-glow {
+    0%,100%{ box-shadow: 0 4px 24px rgba(239,68,68,0.4); }
+    50%{ box-shadow: 0 4px 40px rgba(239,68,68,0.7); }
+  }
+
+  .side-btns { display: flex; flex-direction: column; gap: 6px; }
+
+  .btn-sm {
+    width: 60px; height: 25px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    gap: 4px;
+    transition: all 0.15s;
+    font-family: 'Noto Sans KR', sans-serif;
+    white-space: nowrap;
+  }
+  .btn-sm:active { transform: scale(0.92); }
+  .btn-sm.play-sm { background: rgba(34,211,238,0.08); border-color: rgba(34,211,238,0.25); color: var(--accent2); }
+  .btn-sm:disabled { opacity: 0.28; pointer-events: none; }
+
+  .rec-dot {
+    display: inline-block;
+    width: 9px; height: 9px;
+    background: #fff;
+    border-radius: 50%;
+    animation: blink-dot 1s infinite;
+  }
+  @keyframes blink-dot { 0%,100%{opacity:1} 50%{opacity:0.2} }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="app-name">🎵 흥얼</div>
+  <div class="status-pill" id="statusPill">대기 중...</div>
+</div>
+
+<div class="main">
+  <div class="note-hero">
+    <div class="note-big" id="currentNote">—</div>
+    <div class="note-side">
+      <div class="note-freq" id="currentFreq">허밍하면 음정을 인식해요</div>
+      <canvas id="waveCanvas"></canvas>
+    </div>
+  </div>
+
+  <div class="roll-card">
+    <div class="roll-header">
+      <span class="roll-label">멜로디 롤</span>
+      <span class="roll-label" style="color:rgba(139,92,246,0.5)">← 과거 &nbsp; 현재 →</span>
+    </div>
+    <canvas id="rollCanvas"></canvas>
+  </div>
+
+  <div class="saves-card">
+    <div class="saves-top">
+      <div class="saves-title">저장된 멜로디</div>
+      <button class="save-btn" id="saveBtn" onclick="saveMelody()" disabled>💾 저장</button>
+    </div>
+    <div class="saves-list">
+      <div id="savesList"><div class="empty-state">아직 저장된 멜로디가 없어요 🎶</div></div>
+    </div>
+  </div>
+
+  <div style="height:8px;flex-shrink:0;"></div>
+</div>
+
+<div class="bottom-bar">
+  <button class="btn-record" id="recordBtn" onclick="toggleRecord()">
+    🎤 녹음 시작
+  </button>
+  <div class="side-btns">
+    <button class="btn-sm play-sm" id="playBtn" onclick="playMelody()" disabled>▶ 재생</button>
+    <button class="btn-sm" id="clearBtn" onclick="clearMelody()" disabled>✕ 지우기</button>
+  </div>
+</div>
+
+<script>
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NOTE_COLORS = {
+  'C':'#8b5cf6','C#':'#7c3aed','D':'#3b82f6','D#':'#0ea5e9',
+  'E':'#06b6d4','F':'#10b981','F#':'#22c55e','G':'#eab308',
+  'G#':'#f59e0b','A':'#ef4444','A#':'#ec4899','B':'#a855f7'
+};
+const MIN_NOTE = 48, MAX_NOTE = 84, NOTE_RANGE = MAX_NOTE - MIN_NOTE;
+const ROLL_SPEED = 1.2;
+
+let audioCtx=null, analyser=null, micStream=null;
+let isRecording=false, recordedNotes=[], rollBuffer=[];
+let animFrame=null, noteStartTime=null, lastMidi=-1, lastNoteTime=0, rollX=0;
+let saves=[];
+try { saves = JSON.parse(localStorage.getItem('hum_saves')||'[]'); } catch(e){}
+
+const waveCanvas = document.getElementById('waveCanvas');
+const waveCtx = waveCanvas.getContext('2d');
+const rollCanvas = document.getElementById('rollCanvas');
+const rollCtx = rollCanvas.getContext('2d');
+
+function resizeCanvases() {
+  const dpr = Math.min(window.devicePixelRatio||1, 2);
+  [waveCanvas, rollCanvas].forEach(c => {
+    const rect = c.getBoundingClientRect();
+    if (!rect.width) return;
+    c.width = rect.width * dpr;
+    c.height = rect.height * dpr;
+    c.getContext('2d').scale(dpr, dpr);
+  });
+}
+window.addEventListener('resize', ()=>setTimeout(resizeCanvases,100));
+setTimeout(resizeCanvases, 250);
+
+function autoCorrelate(buf, sr) {
+  const SIZE=buf.length, MAX=Math.floor(SIZE/2);
+  let rms=0; for(let i=0;i<SIZE;i++) rms+=buf[i]*buf[i];
+  if(Math.sqrt(rms/SIZE)<0.012) return -1;
+  let best=-1, bestCorr=0, last=1, found=false;
+  for(let o=0;o<MAX;o++){
+    let corr=0; for(let i=0;i<MAX;i++) corr+=Math.abs(buf[i]-buf[i+o]);
+    corr=1-corr/MAX;
+    if(corr>0.9&&corr>last) found=true;
+    if(found&&corr<last){if(corr>bestCorr){bestCorr=corr;best=o-1;}}
+    last=corr;
+  }
+  return (best===-1||bestCorr<0.9)?-1:sr/best;
+}
+
+function freqToMidi(f){return Math.round(12*Math.log2(f/440)+69);}
+function midiToName(m){return NOTE_NAMES[m%12]+(Math.floor(m/12)-1);}
+function midiToFreq(m){return 440*Math.pow(2,(m-69)/12);}
+function noteToY(midi,h){return h-((midi-MIN_NOTE)/NOTE_RANGE)*h*0.88-h*0.06;}
+
+async function toggleRecord(){
+  if(!isRecording) await startRecording(); else stopRecording();
+}
+
+async function startRecording(){
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false},video:false});
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 4096;
+    analyser.smoothingTimeConstant = 0.25;
+    audioCtx.createMediaStreamSource(micStream).connect(analyser);
+    isRecording=true; recordedNotes=[]; rollBuffer=[]; rollX=0; lastMidi=-1; noteStartTime=null; lastNoteTime=0;
+    const btn=document.getElementById('recordBtn');
+    btn.innerHTML='<span class="rec-dot"></span> 녹음 중지';
+    btn.classList.add('recording');
+    document.getElementById('playBtn').disabled=true;
+    document.getElementById('clearBtn').disabled=true;
+    document.getElementById('saveBtn').disabled=true;
+    setStatus('🔴 허밍해보세요!','rec');
+    loop();
+  } catch(e){ setStatus('마이크 권한이 필요해요 🎤'); }
+}
+
+function stopRecording(){
+  isRecording=false;
+  if(micStream) micStream.getTracks().forEach(t=>t.stop());
+  if(audioCtx) audioCtx.close();
+  cancelAnimationFrame(animFrame);
+  if(lastMidi>0&&noteStartTime!==null){
+    const dur=(performance.now()-noteStartTime)/1000;
+    if(dur>0.08) recordedNotes.push({midi:lastMidi,time:lastNoteTime,duration:dur});
+  }
+  document.getElementById('currentNote').textContent='—';
+  document.getElementById('currentFreq').textContent='녹음 완료';
+  const btn=document.getElementById('recordBtn');
+  btn.innerHTML='🎤 녹음 시작'; btn.classList.remove('recording');
+  const has=recordedNotes.length>0;
+  document.getElementById('playBtn').disabled=!has;
+  document.getElementById('clearBtn').disabled=!has;
+  document.getElementById('saveBtn').disabled=!has;
+  setStatus(has?`✅ ${recordedNotes.length}개 음정 인식됨`:'음정을 못 잡았어요. 다시!','active');
+  drawRollFinal();
+}
+
+function loop(){
+  animFrame=requestAnimationFrame(loop);
+  const buf=new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(buf);
+  drawWave(buf);
+  const freq=autoCorrelate(buf,audioCtx.sampleRate);
+  const now=performance.now();
+  if(freq>60&&freq<2000){
+    const midi=freqToMidi(freq);
+    if(midi>=MIN_NOTE&&midi<=MAX_NOTE){
+      const name=midiToName(midi);
+      const color=NOTE_COLORS[NOTE_NAMES[midi%12]];
+      const el=document.getElementById('currentNote');
+      el.textContent=name;
+      el.style.background=`linear-gradient(135deg,${color},var(--accent2))`;
+      el.style.webkitBackgroundClip='text'; el.style.backgroundClip='text'; el.style.webkitTextFillColor='transparent';
+      document.getElementById('currentFreq').textContent=freq.toFixed(0)+' Hz';
+      if(midi!==lastMidi){
+        if(lastMidi>0&&noteStartTime!==null){
+          const dur=(now-noteStartTime)/1000;
+          if(dur>0.08){
+            recordedNotes.push({midi:lastMidi,time:lastNoteTime,duration:dur});
+            lastNoteTime=recordedNotes[recordedNotes.length-1].time+recordedNotes[recordedNotes.length-1].duration;
+          }
+        }
+        lastMidi=midi; noteStartTime=now;
+      }
+      rollBuffer.push({midi,x:rollX});
+    }
+  } else {
+    if(lastMidi>0&&noteStartTime!==null){
+      const dur=(now-noteStartTime)/1000;
+      if(dur>0.08){recordedNotes.push({midi:lastMidi,time:lastNoteTime,duration:dur});lastNoteTime+=dur;}
+      lastMidi=-1; noteStartTime=null;
+    }
+    const el=document.getElementById('currentNote');
+    el.textContent='—';
+    el.style.background='linear-gradient(135deg,var(--accent2),var(--accent))';
+    el.style.webkitBackgroundClip='text'; el.style.backgroundClip='text'; el.style.webkitTextFillColor='transparent';
+    document.getElementById('currentFreq').textContent='소리 감지 중...';
+  }
+  rollX+=ROLL_SPEED; drawRollLive();
+}
+
+function drawWave(buf){
+  const r=waveCanvas.getBoundingClientRect(),w=r.width,h=r.height;
+  waveCtx.clearRect(0,0,w,h);
+  waveCtx.beginPath();
+  const step=buf.length/w;
+  for(let i=0;i<w;i++){
+    const y=h/2+buf[Math.floor(i*step)]*h*0.4;
+    i===0?waveCtx.moveTo(i,y):waveCtx.lineTo(i,y);
+  }
+  waveCtx.strokeStyle='rgba(34,211,238,0.75)';
+  waveCtx.lineWidth=1.5;
+  waveCtx.shadowColor='rgba(34,211,238,0.5)'; waveCtx.shadowBlur=6;
+  waveCtx.stroke(); waveCtx.shadowBlur=0;
+}
+
+function drawGrid(w,h){
+  for(let n=MIN_NOTE;n<=MAX_NOTE;n++){
+    if(NOTE_NAMES[n%12]==='C'){
+      const y=noteToY(n,h);
+      rollCtx.strokeStyle='rgba(139,92,246,0.18)'; rollCtx.lineWidth=1;
+      rollCtx.beginPath(); rollCtx.moveTo(0,y); rollCtx.lineTo(w,y); rollCtx.stroke();
+      rollCtx.fillStyle='rgba(139,92,246,0.45)'; rollCtx.font='8px monospace';
+      rollCtx.fillText(midiToName(n),3,y-2);
+    }
+  }
+}
+
+function drawRollLive(){
+  const r=rollCanvas.getBoundingClientRect(),w=r.width,h=r.height;
+  rollCtx.clearRect(0,0,w,h); drawGrid(w,h);
+  const cutoff=rollX-w;
+  rollBuffer=rollBuffer.filter(p=>p.x>=cutoff);
+  if(rollBuffer.length<2) return;
+  rollCtx.beginPath();
+  rollBuffer.forEach((pt,i)=>{
+    const x=pt.x-cutoff,y=noteToY(pt.midi,h);
+    i===0?rollCtx.moveTo(x,y):rollCtx.lineTo(x,y);
+  });
+  rollCtx.strokeStyle='rgba(139,92,246,0.65)'; rollCtx.lineWidth=3;
+  rollCtx.lineCap='round'; rollCtx.lineJoin='round';
+  rollCtx.shadowColor='rgba(139,92,246,0.5)'; rollCtx.shadowBlur=8;
+  rollCtx.stroke(); rollCtx.shadowBlur=0;
+  const last=rollBuffer[rollBuffer.length-1];
+  const lx=last.x-cutoff,ly=noteToY(last.midi,h);
+  const lc=NOTE_COLORS[NOTE_NAMES[last.midi%12]];
+  rollCtx.beginPath(); rollCtx.arc(lx,ly,5,0,Math.PI*2);
+  rollCtx.fillStyle=lc; rollCtx.shadowColor=lc; rollCtx.shadowBlur=14;
+  rollCtx.fill(); rollCtx.shadowBlur=0;
+}
+
+function drawRollFinal(){
+  const r=rollCanvas.getBoundingClientRect(),w=r.width,h=r.height;
+  rollCtx.clearRect(0,0,w,h); drawGrid(w,h);
+  if(!recordedNotes.length) return;
+  const total=recordedNotes[recordedNotes.length-1].time+recordedNotes[recordedNotes.length-1].duration;
+  if(total<=0) return;
+  recordedNotes.forEach(note=>{
+    const x=(note.time/total)*(w-8)+4;
+    const bw=Math.max(4,(note.duration/total)*(w-8));
+    const y=noteToY(note.midi,h);
+    const c=NOTE_COLORS[NOTE_NAMES[note.midi%12]];
+    rollCtx.fillStyle=c; rollCtx.shadowColor=c; rollCtx.shadowBlur=7;
+    rollCtx.beginPath(); rollCtx.roundRect(x,y-5,bw,10,4);
+    rollCtx.fill(); rollCtx.shadowBlur=0;
+    if(bw>22){rollCtx.fillStyle='rgba(255,255,255,0.9)';rollCtx.font='bold 8px monospace';rollCtx.fillText(midiToName(note.midi),x+3,y+3);}
+  });
+}
+
+let playbackCtx=null;
+function playMelody(notes=null){
+  const toPlay=notes||recordedNotes;
+  if(!toPlay||!toPlay.length) return;
+  if(playbackCtx) playbackCtx.close();
+  playbackCtx=new (window.AudioContext||window.webkitAudioContext)();
+  const btn=document.getElementById('playBtn');
+  btn.disabled=true; btn.textContent='▶ ...';
+  const t0=playbackCtx.currentTime; let maxEnd=0;
+  toPlay.forEach(note=>{
+    const osc=playbackCtx.createOscillator();
+    const gain=playbackCtx.createGain();
+    osc.connect(gain); gain.connect(playbackCtx.destination);
+    osc.type='sine';
+    osc.frequency.setValueAtTime(midiToFreq(note.midi),t0+note.time);
+    const dur=Math.max(0.1,note.duration);
+    gain.gain.setValueAtTime(0,t0+note.time);
+    gain.gain.linearRampToValueAtTime(0.4,t0+note.time+0.02);
+    gain.gain.setValueAtTime(0.4,t0+note.time+dur-0.08);
+    gain.gain.linearRampToValueAtTime(0,t0+note.time+dur);
+    osc.start(t0+note.time); osc.stop(t0+note.time+dur+0.05);
+    maxEnd=Math.max(maxEnd,note.time+dur);
+  });
+  setTimeout(()=>{btn.textContent='▶ 재생';btn.disabled=(recordedNotes.length===0&&!notes);},(maxEnd+0.5)*1000);
+}
+
+function saveMelody(){
+  if(!recordedNotes.length) return;
+  const entry={id:Date.now(),name:`멜로디 ${saves.length+1}`,notes:[...recordedNotes],createdAt:new Date().toLocaleString('ko-KR')};
+  saves.unshift(entry);
+  try{localStorage.setItem('hum_saves',JSON.stringify(saves));}catch(e){}
+  renderSaves(); setStatus('💾 저장됨!','active');
+}
+
+function deleteSave(id){
+  saves=saves.filter(s=>s.id!==id);
+  try{localStorage.setItem('hum_saves',JSON.stringify(saves));}catch(e){}
+  renderSaves();
+}
+
+function renderSaves(){
+  const list=document.getElementById('savesList');
+  if(!saves.length){list.innerHTML='<div class="empty-state">아직 저장된 멜로디가 없어요 🎶</div>';return;}
+  list.innerHTML=saves.map(s=>`
+    <div class="melody-card">
+      <div class="melody-mini-wrap">
+        <div class="melody-name">${s.name}</div>
+        <canvas class="melody-mini" id="mini_${s.id}" width="240" height="28"></canvas>
+        <div class="melody-meta">${s.notes.length}개 음정 · ${s.createdAt}</div>
+      </div>
+      <div class="melody-actions">
+        <button class="icon-btn play" onclick="playMelody(saves.find(x=>x.id===${s.id}).notes)">▶</button>
+        <button class="icon-btn del" onclick="deleteSave(${s.id})">✕</button>
+      </div>
+    </div>
+  `).join('');
+  saves.forEach(s=>setTimeout(()=>drawMiniRoll(s),60));
+}
+
+function drawMiniRoll(save){
+  const c=document.getElementById(`mini_${save.id}`);
+  if(!c) return;
+  const ctx=c.getContext('2d'),w=c.width,h=c.height;
+  ctx.clearRect(0,0,w,h);
+  const notes=save.notes;
+  if(!notes.length) return;
+  const total=notes[notes.length-1].time+notes[notes.length-1].duration;
+  if(total<=0) return;
+  notes.forEach(note=>{
+    const x=(note.time/total)*(w-4)+2;
+    const bw=Math.max(3,(note.duration/total)*(w-4));
+    const y=noteToY(note.midi,h);
+    ctx.fillStyle=NOTE_COLORS[NOTE_NAMES[note.midi%12]];
+    ctx.beginPath(); ctx.roundRect(x,y-2.5,bw,5,2); ctx.fill();
+  });
+}
+
+function clearMelody(){
+  recordedNotes=[]; rollBuffer=[]; rollX=0;
+  const rw=rollCanvas.getBoundingClientRect(),ww=waveCanvas.getBoundingClientRect();
+  rollCtx.clearRect(0,0,rw.width,rw.height);
+  waveCtx.clearRect(0,0,ww.width,ww.height);
+  document.getElementById('currentNote').textContent='—';
+  document.getElementById('currentFreq').textContent='허밍하면 음정을 인식해요';
+  document.getElementById('playBtn').disabled=true;
+  document.getElementById('clearBtn').disabled=true;
+  document.getElementById('saveBtn').disabled=true;
+  setStatus('지워졌어요!');
+}
+
+function setStatus(msg,cls='active'){
+  const el=document.getElementById('statusPill');
+  el.textContent=msg; el.className='status-pill '+cls;
+}
+
+renderSaves();
+setTimeout(resizeCanvases,300);
+</script>
+</body>
+</html>
