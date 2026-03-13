@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>흥얼</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg: #0c0c0f;
+  --surface: #16161c;
+  --card: #1c1c24;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --accent: #7c6af7;
+  --accent-dim: rgba(124,106,247,0.15);
+  --green: #34d399;
+  --red: #f87171;
+  --amber: #fbbf24;
+  --text: #f0f0f5;
+  --sub: #888899;
+  --dim: #444455;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; overscroll-behavior:none; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  padding-top: max(16px, env(safe-area-inset-top, 16px));
+  flex-shrink: 0;
+}
+
+.logo {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+.logo span { color: var(--accent); }
+
+.badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--sub);
+  transition: all 0.25s;
+  letter-spacing: 0.1px;
+}
+.badge.rec { color: var(--red); border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.08); }
+.badge.ok  { color: var(--green); border-color: rgba(52,211,153,0.3); background: rgba(52,211,153,0.08); }
+
+/* ── Scroll body ── */
+.body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Note card ── */
+.note-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 18px 18px 14px;
+  flex-shrink: 0;
+}
+
+.note-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.note-display {
+  width: 96px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.note-name {
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -3px;
+  background: linear-gradient(135deg, var(--accent), #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  transition: opacity 0.08s;
+}
+
+.note-hz {
+  font-size: 11px;
+  color: var(--sub);
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+.wave-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.wave-label {
+  font-size: 10px;
+  color: var(--dim);
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+#waveCanvas {
+  width: 100%;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--surface);
+  display: block;
+}
+
+/* ── Roll card ── */
+.roll-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 14px 14px 12px;
+  flex-shrink: 0;
+}
+
+.card-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+#rollCanvas {
+  width: 100%;
+  height: 120px;
+  border-radius: 10px;
+  background: var(--surface);
+  display: block;
+}
+
+/* ── Saves card ── */
+.saves-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 14px;
+  flex: 1;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.saves-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.btn-save {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 13px;
+  border-radius: 10px;
+  border: 1px solid rgba(251,191,36,0.3);
+  background: rgba(251,191,36,0.08);
+  color: var(--amber);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.btn-save:active { transform: scale(0.94); background: rgba(251,191,36,0.15); }
+.btn-save:disabled { opacity: 0.28; pointer-events: none; }
+
+.saves-list {
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
+}
+
+.empty {
+  text-align: center;
+  padding: 18px 0;
+  color: var(--dim);
+  font-size: 13px;
+}
+
+.mc {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 10px 12px;
+  margin-bottom: 7px;
+  transition: all 0.12s;
+}
+.mc:active { transform: scale(0.98); border-color: var(--border2); }
+
+.mc-info { flex: 1; min-width: 0; }
+.mc-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.mc-canvas { width: 100%; height: 24px; border-radius: 4px; display: block; }
+.mc-meta { font-size: 10px; color: var(--sub); margin-top: 3px; font-weight: 400; }
+
+.mc-btns { display: flex; gap: 6px; flex-shrink: 0; }
+.ib {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--sub);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s;
+}
+.ib:active { transform: scale(0.88); }
+.ib.p:active { background: var(--accent-dim); color: var(--accent); border-color: rgba(124,106,247,0.4); }
+.ib.d:active { background: rgba(248,113,113,0.15); color: var(--red); border-color: rgba(248,113,113,0.4); }
+
+/* ── Bottom bar ── */
+.bottom {
+  flex-shrink: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: 10px 14px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.btn-rec {
+  flex: 1;
+  height: 52px;
+  border-radius: 16px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  letter-spacing: -0.2px;
+  transition: all 0.15s;
+  box-shadow: 0 2px 16px rgba(124,106,247,0.3);
+}
+.btn-rec:active { transform: scale(0.97); }
+.btn-rec.on {
+  background: var(--red);
+  box-shadow: 0 2px 16px rgba(248,113,113,0.35);
+  animation: rec-pulse 1.4s ease-in-out infinite;
+}
+@keyframes rec-pulse {
+  0%,100% { box-shadow: 0 2px 16px rgba(248,113,113,0.35); }
+  50% { box-shadow: 0 2px 28px rgba(248,113,113,0.6); }
+}
+
+.right-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.btn-mini {
+  width: 56px;
+  flex: 1;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--sub);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  gap: 3px;
+  transition: all 0.12s;
+  font-family: inherit;
+}
+.btn-mini:active { transform: scale(0.92); }
+.btn-mini.play { color: var(--green); border-color: rgba(52,211,153,0.25); background: rgba(52,211,153,0.06); }
+.btn-mini:disabled { opacity: 0.25; pointer-events: none; }
+
+.rdot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  flex-shrink: 0;
+  animation: rdot-blink 1s infinite;
+}
+@keyframes rdot-blink { 0%,100%{opacity:1} 50%{opacity:0.15} }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">흥얼<span>.</span></div>
+  <div class="badge" id="badge">대기 중</div>
+</div>
+
+<div class="body">
+
+  <div class="note-card">
+    <div class="note-row">
+      <div class="note-display">
+        <div class="note-name" id="noteName">—</div>
+        <div class="note-hz" id="noteHz">마이크 허용 후 시작</div>
+      </div>
+      <div class="wave-wrap">
+        <div class="wave-label">파형</div>
+        <canvas id="waveCanvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="roll-card">
+    <div class="card-title">
+      <span>멜로디 롤</span>
+      <span style="color:var(--accent);opacity:0.5">← 과거 · 현재 →</span>
+    </div>
+    <canvas id="rollCanvas"></canvas>
+  </div>
+
+  <div class="saves-card">
+    <div class="saves-header">
+      <div class="card-title" style="margin:0">저장된 멜로디</div>
+      <button class="btn-save" id="saveBtn" onclick="saveMelody()" disabled>저장</button>
+    </div>
+    <div class="saves-list" id="savesList">
+      <div class="empty">아직 저장된 멜로디가 없어요</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="bottom">
+  <button class="btn-rec" id="recBtn" onclick="toggleRec()">
+    <span style="font-size:16px">🎤</span> 녹음 시작
+  </button>
+  <div class="right-btns">
+    <button class="btn-mini play" id="playBtn" onclick="doPlay()" disabled>▶ 재생</button>
+    <button class="btn-mini" id="clearBtn" onclick="doClear()" disabled>✕ 지우기</button>
+  </div>
+</div>
+
+<script>
+// ── Config ─────────────────────────────────────────────────────────────────
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NOTE_COLORS = {
+  'C':'#8b5cf6','C#':'#7c3aed','D':'#6366f1','D#':'#3b82f6',
+  'E':'#06b6d4','F':'#10b981','F#':'#22c55e','G':'#eab308',
+  'G#':'#f59e0b','A':'#ef4444','A#':'#ec4899','B':'#a855f7'
+};
+const MIN_MIDI = 48, MAX_MIDI = 84, MIDI_RANGE = MAX_MIDI - MIN_MIDI;
+const ROLL_PX_PER_FRAME = 1.4;
+
+// ── State ──────────────────────────────────────────────────────────────────
+let mic = null, actx = null, analyser = null;
+let recording = false;
+let notes = [];        // finalized note segments
+let liveNotes = [];    // rolling display buffer: [{midi, px}]
+let rollPx = 0;
+let raf = null;
+let curMidi = -1, noteStart = null, noteTimeAcc = 0;
+let saves = [];
+try { saves = JSON.parse(localStorage.getItem('hm2') || '[]'); } catch(e){}
+
+// ── Canvas ─────────────────────────────────────────────────────────────────
+const wC = document.getElementById('waveCanvas'), wX = wC.getContext('2d');
+const rC = document.getElementById('rollCanvas'), rX = rC.getContext('2d');
+
+function resize() {
+  const dpr = Math.min(devicePixelRatio || 1, 3);
+  [wC, rC].forEach(c => {
+    const r = c.getBoundingClientRect();
+    if (!r.width) return;
+    c.width = r.width * dpr;
+    c.height = r.height * dpr;
+    c.getContext('2d').scale(dpr, dpr);
+  });
+}
+window.addEventListener('resize', () => setTimeout(resize, 80));
+setTimeout(resize, 200);
+
+// ── Pitch: autocorrelation ─────────────────────────────────────────────────
+function getPitch(buf, sr) {
+  const N = buf.length, half = N >> 1;
+  let rms = 0;
+  for (let i = 0; i < N; i++) rms += buf[i] * buf[i];
+  if (Math.sqrt(rms / N) < 0.013) return -1;
+
+  // NSDF (normalized square difference)
+  let best = -1, bestVal = 0, prev = 1, rising = false;
+  for (let tau = 1; tau < half; tau++) {
+    let num = 0, denom = 0;
+    for (let i = 0; i < half; i++) {
+      num   += buf[i] * buf[i + tau];
+      denom += buf[i] * buf[i] + buf[i + tau] * buf[i + tau];
+    }
+    const nsdf = denom < 1e-10 ? 0 : 2 * num / denom;
+    if (!rising && nsdf > 0) rising = true;
+    if (rising && nsdf > 0.86 && nsdf >= prev) { best = tau; bestVal = nsdf; }
+    else if (rising && nsdf < prev && best > 0) break;
+    prev = nsdf;
+  }
+  if (best < 2 || bestVal < 0.86) return -1;
+  // parabolic refinement
+  const y1 = best > 1 ? (2*(best>1?best:best+1)-1) : 0;
+  const a  = best > 0 ? (2*best-1) : 0; // placeholder
+  return sr / best;
+}
+
+function freqToMidi(f)  { return Math.round(12 * Math.log2(f / 440) + 69); }
+function midiToHz(m)    { return 440 * Math.pow(2, (m - 69) / 12); }
+function midiToLabel(m) { return NOTE_NAMES[m % 12] + (Math.floor(m / 12) - 1); }
+function noteToY(m, h)  { return h - ((m - MIN_MIDI) / MIDI_RANGE) * h * 0.86 - h * 0.07; }
+function noteColor(m)   { return NOTE_COLORS[NOTE_NAMES[m % 12]]; }
+
+// ── Record ─────────────────────────────────────────────────────────────────
+async function toggleRec() {
+  if (!recording) await startRec(); else stopRec();
+}
+
+async function startRec() {
+  try {
+    mic = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+      video: false
+    });
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    // resume needed on iOS
+    if (actx.state === 'suspended') await actx.resume();
+
+    analyser = actx.createAnalyser();
+    analyser.fftSize = 8192;
+    analyser.smoothingTimeConstant = 0.15;
+    actx.createMediaStreamSource(mic).connect(analyser);
+
+    recording = true;
+    notes = []; liveNotes = []; rollPx = 0;
+    curMidi = -1; noteStart = null; noteTimeAcc = 0;
+
+    setBadge('● REC', 'rec');
+    setBtn(true);
+    loop();
+  } catch(e) {
+    setBadge('마이크 필요', '');
+    console.error(e);
+  }
+}
+
+function stopRec() {
+  recording = false;
+  if (mic) mic.getTracks().forEach(t => t.stop());
+  cancelAnimationFrame(raf);
+
+  // flush last note
+  if (curMidi > 0 && noteStart !== null) {
+    const dur = (performance.now() - noteStart) / 1000;
+    if (dur > 0.07) notes.push({ midi: curMidi, t: noteTimeAcc, dur });
+  }
+
+  setBtn(false);
+  const has = notes.length > 0;
+  setBadge(has ? `${notes.length}음 인식됨` : '다시 시도', has ? 'ok' : '');
+  document.getElementById('noteName').textContent = '—';
+  document.getElementById('noteHz').textContent = has ? '녹음 완료' : '소리를 못 잡았어요';
+  ['playBtn','clearBtn','saveBtn'].forEach(id => document.getElementById(id).disabled = !has);
+  if (has) drawRollFinal();
+}
+
+// ── Main loop ──────────────────────────────────────────────────────────────
+function loop() {
+  raf = requestAnimationFrame(loop);
+  const buf = new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(buf);
+  drawWave(buf);
+
+  const hz = getPitch(buf, actx.sampleRate);
+  const now = performance.now();
+
+  if (hz > 55 && hz < 2100) {
+    const midi = freqToMidi(hz);
+    if (midi >= MIN_MIDI && midi <= MAX_MIDI) {
+      // UI
+      const el = document.getElementById('noteName');
+      el.textContent = midiToLabel(midi);
+      const c = noteColor(midi);
+      el.style.background = `linear-gradient(135deg, ${c}, #a78bfa)`;
+      el.style.webkitBackgroundClip = 'text';
+      el.style.backgroundClip = 'text';
+      el.style.webkitTextFillColor = 'transparent';
+      document.getElementById('noteHz').textContent = hz.toFixed(0) + ' Hz';
+
+      // Track note change
+      if (midi !== curMidi) {
+        if (curMidi > 0 && noteStart !== null) {
+          const dur = (now - noteStart) / 1000;
+          if (dur > 0.07) { notes.push({ midi: curMidi, t: noteTimeAcc, dur }); noteTimeAcc += dur; }
+        }
+        curMidi = midi; noteStart = now;
+      }
+      liveNotes.push({ midi, px: rollPx });
+    }
+  } else {
+    // silence
+    if (curMidi > 0 && noteStart !== null) {
+      const dur = (now - noteStart) / 1000;
+      if (dur > 0.07) { notes.push({ midi: curMidi, t: noteTimeAcc, dur }); noteTimeAcc += dur; }
+      curMidi = -1; noteStart = null;
+    }
+    const el = document.getElementById('noteName');
+    el.textContent = '—';
+    el.style.background = 'linear-gradient(135deg, var(--accent), #a78bfa)';
+    el.style.webkitBackgroundClip = 'text';
+    el.style.backgroundClip = 'text';
+    el.style.webkitTextFillColor = 'transparent';
+    document.getElementById('noteHz').textContent = '감지 중...';
+  }
+
+  rollPx += ROLL_PX_PER_FRAME;
+  drawRollLive();
+}
+
+// ── Draw wave ──────────────────────────────────────────────────────────────
+function drawWave(buf) {
+  const { width: w, height: h } = wC.getBoundingClientRect();
+  wX.clearRect(0, 0, w, h);
+  wX.beginPath();
+  const step = buf.length / w;
+  for (let i = 0; i < w; i++) {
+    const y = h / 2 + buf[Math.floor(i * step)] * h * 0.42;
+    i === 0 ? wX.moveTo(i, y) : wX.lineTo(i, y);
+  }
+  wX.strokeStyle = 'rgba(124,106,247,0.8)';
+  wX.lineWidth = 1.5;
+  wX.shadowColor = 'rgba(124,106,247,0.4)';
+  wX.shadowBlur = 5;
+  wX.stroke();
+  wX.shadowBlur = 0;
+}
+
+// ── Draw roll ──────────────────────────────────────────────────────────────
+function drawGrid(w, h) {
+  for (let n = MIN_MIDI; n <= MAX_MIDI; n++) {
+    if (NOTE_NAMES[n % 12] === 'C') {
+      const y = noteToY(n, h);
+      rX.beginPath();
+      rX.moveTo(0, y); rX.lineTo(w, y);
+      rX.strokeStyle = 'rgba(255,255,255,0.05)';
+      rX.lineWidth = 1;
+      rX.stroke();
+      rX.fillStyle = 'rgba(255,255,255,0.2)';
+      rX.font = '8px Inter, sans-serif';
+      rX.fillText(midiToLabel(n), 3, y - 2);
+    }
+  }
+}
+
+function drawRollLive() {
+  const { width: w, height: h } = rC.getBoundingClientRect();
+  rX.clearRect(0, 0, w, h);
+  drawGrid(w, h);
+  const cutoff = rollPx - w;
+  liveNotes = liveNotes.filter(p => p.px >= cutoff);
+  if (liveNotes.length < 2) return;
+
+  // draw path
+  rX.beginPath();
+  liveNotes.forEach((p, i) => {
+    const x = p.px - cutoff, y = noteToY(p.midi, h);
+    i === 0 ? rX.moveTo(x, y) : rX.lineTo(x, y);
+  });
+  rX.strokeStyle = 'rgba(124,106,247,0.7)';
+  rX.lineWidth = 2.5;
+  rX.lineCap = 'round'; rX.lineJoin = 'round';
+  rX.shadowColor = 'rgba(124,106,247,0.5)'; rX.shadowBlur = 7;
+  rX.stroke(); rX.shadowBlur = 0;
+
+  // head
+  const last = liveNotes[liveNotes.length - 1];
+  const lx = last.px - cutoff, ly = noteToY(last.midi, h);
+  const lc = noteColor(last.midi);
+  rX.beginPath(); rX.arc(lx, ly, 4.5, 0, Math.PI * 2);
+  rX.fillStyle = lc; rX.shadowColor = lc; rX.shadowBlur = 12;
+  rX.fill(); rX.shadowBlur = 0;
+}
+
+function drawRollFinal() {
+  const { width: w, height: h } = rC.getBoundingClientRect();
+  rX.clearRect(0, 0, w, h);
+  drawGrid(w, h);
+  if (!notes.length) return;
+  const total = notes[notes.length - 1].t + notes[notes.length - 1].dur;
+  if (total <= 0) return;
+
+  notes.forEach(n => {
+    const x  = (n.t / total) * (w - 8) + 4;
+    const bw = Math.max(4, (n.dur / total) * (w - 8));
+    const y  = noteToY(n.midi, h);
+    const c  = noteColor(n.midi);
+    rX.fillStyle = c; rX.shadowColor = c; rX.shadowBlur = 6;
+    rX.beginPath(); rX.roundRect(x, y - 4, bw, 8, 3);
+    rX.fill(); rX.shadowBlur = 0;
+    if (bw > 20) {
+      rX.fillStyle = 'rgba(255,255,255,0.85)';
+      rX.font = 'bold 7px Inter, sans-serif';
+      rX.fillText(midiToLabel(n.midi), x + 3, y + 2.5);
+    }
+  });
+}
+
+// ── Playback (fixed: fresh AudioContext each time, unlock on user gesture) ──
+function doPlay(noteArr) {
+  const arr = noteArr || notes;
+  if (!arr || !arr.length) return;
+
+  // Always create fresh context — iOS requires user gesture which we have here
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+  const resume = ctx.state === 'suspended' ? ctx.resume() : Promise.resolve();
+  resume.then(() => {
+    const t0 = ctx.currentTime + 0.05; // tiny offset to ensure scheduling works
+    let maxEnd = 0;
+
+    arr.forEach(n => {
+      const dur = Math.max(0.12, n.dur);
+      const freq = midiToHz(n.midi);
+
+      // oscillator
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t0 + n.t);
+
+      // gain envelope
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.001, t0 + n.t);
+      g.gain.linearRampToValueAtTime(0.35, t0 + n.t + Math.min(0.04, dur * 0.2));
+      g.gain.setValueAtTime(0.35, t0 + n.t + dur - Math.min(0.06, dur * 0.3));
+      g.gain.linearRampToValueAtTime(0.001, t0 + n.t + dur);
+
+      osc.connect(g).connect(ctx.destination);
+      osc.start(t0 + n.t);
+      osc.stop(t0 + n.t + dur + 0.02);
+
+      maxEnd = Math.max(maxEnd, n.t + dur);
+    });
+
+    const btn = document.getElementById('playBtn');
+    btn.disabled = true; btn.textContent = '♪ 재생 중';
+    setTimeout(() => {
+      btn.textContent = '▶ 재생';
+      btn.disabled = (!notes.length && !noteArr);
+      ctx.close();
+    }, (maxEnd + 0.6) * 1000 + 50);
+  });
+}
+
+// ── Save ───────────────────────────────────────────────────────────────────
+function saveMelody() {
+  if (!notes.length) return;
+  saves.unshift({ id: Date.now(), name: '멜로디 ' + (saves.length + 1), notes: [...notes], at: new Date().toLocaleString('ko-KR') });
+  try { localStorage.setItem('hm2', JSON.stringify(saves)); } catch(e){}
+  renderSaves();
+  setBadge('저장됨 ✓', 'ok');
+}
+
+function delSave(id) {
+  saves = saves.filter(s => s.id !== id);
+  try { localStorage.setItem('hm2', JSON.stringify(saves)); } catch(e){}
+  renderSaves();
+}
+
+function renderSaves() {
+  const el = document.getElementById('savesList');
+  if (!saves.length) { el.innerHTML = '<div class="empty">아직 저장된 멜로디가 없어요</div>'; return; }
+  el.innerHTML = saves.map(s => `
+    <div class="mc">
+      <div class="mc-info">
+        <div class="mc-name">${s.name}</div>
+        <canvas class="mc-canvas" id="mc_${s.id}" width="200" height="24"></canvas>
+        <div class="mc-meta">${s.notes.length}개 음 · ${s.at}</div>
+      </div>
+      <div class="mc-btns">
+        <button class="ib p" onclick="doPlay(saves.find(x=>x.id===${s.id}).notes)">▶</button>
+        <button class="ib d" onclick="delSave(${s.id})">✕</button>
+      </div>
+    </div>
+  `).join('');
+  saves.forEach(s => setTimeout(() => drawMini(s), 50));
+}
+
+function drawMini(s) {
+  const c = document.getElementById('mc_' + s.id);
+  if (!c) return;
+  const ctx = c.getContext('2d'), w = c.width, h = c.height;
+  ctx.clearRect(0, 0, w, h);
+  const arr = s.notes;
+  if (!arr.length) return;
+  const total = arr[arr.length-1].t + arr[arr.length-1].dur;
+  if (total <= 0) return;
+  arr.forEach(n => {
+    const x  = (n.t / total) * (w - 4) + 2;
+    const bw = Math.max(2, (n.dur / total) * (w - 4));
+    const y  = noteToY(n.midi, h);
+    ctx.fillStyle = noteColor(n.midi);
+    ctx.beginPath(); ctx.roundRect(x, y - 2, bw, 4, 1.5); ctx.fill();
+  });
+}
+
+// ── Clear ──────────────────────────────────────────────────────────────────
+function doClear() {
+  notes = []; liveNotes = []; rollPx = 0;
+  const { width: rw, height: rh } = rC.getBoundingClientRect();
+  const { width: ww, height: wh } = wC.getBoundingClientRect();
+  rX.clearRect(0, 0, rw, rh);
+  wX.clearRect(0, 0, ww, wh);
+  document.getElementById('noteName').textContent = '—';
+  document.getElementById('noteHz').textContent = '마이크 허용 후 시작';
+  ['playBtn','clearBtn','saveBtn'].forEach(id => document.getElementById(id).disabled = true);
+  setBadge('대기 중', '');
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function setBadge(txt, cls) {
+  const el = document.getElementById('badge');
+  el.textContent = txt;
+  el.className = 'badge' + (cls ? ' ' + cls : '');
+}
+
+function setBtn(isRec) {
+  const btn = document.getElementById('recBtn');
+  if (isRec) {
+    btn.innerHTML = '<span class="rdot"></span> 녹음 중지';
+    btn.classList.add('on');
+  } else {
+    btn.innerHTML = '<span style="font-size:16px">🎤</span> 녹음 시작';
+    btn.classList.remove('on');
+  }
+}
+
+renderSaves();
+setTimeout(resize, 350);
+</script>
+</body>
+</html>
